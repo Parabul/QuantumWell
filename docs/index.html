@@ -31,6 +31,7 @@
 
         /* FPS Counter Styling */
         #fpsCounter {
+            display: none;
             position: absolute;
             top: 10px;
             left: 10px;
@@ -82,7 +83,7 @@
 
             const MIN_SIGMA = 0.05; // Quick tap size
             const MAX_SIGMA = 0.30; // Max hold size
-            const SIGMA_GROWTH_RATE = 0.2; // How fast sigma grows per second
+            const SIGMA_GROWTH_RATE = 0.3; // How fast sigma grows per second
 
             // 1. Pointer Down (Start Charging)
             canvas.addEventListener('pointerdown', function (event) {
