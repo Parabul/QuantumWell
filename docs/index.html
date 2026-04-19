@@ -26,7 +26,7 @@
             background-color: #111;
             border-radius: 50%;
             /* touch-action: none prevents the browser from scrolling when dragging on the canvas */
-            touch-action: none; 
+            touch-action: none;
         }
 
         /* FPS Counter Styling */
@@ -47,7 +47,7 @@
 </head>
 
 <body>
-    
+
     <div id="fpsCounter">FPS: 0</div>
 
     <canvas id="quantumCanvas" width="200" height="200"></canvas>
@@ -62,13 +62,13 @@
             const canvas = document.getElementById('quantumCanvas');
             const ctx = canvas.getContext('2d');
             const fpsCounterElement = document.getElementById('fpsCounter');
-            
+
             const well = new Module.CircularQuantumWell(gridSize, 1.0);
 
             // Load a large basis set of empty states
             for (let l = -8; l <= 8; l++) {
                 for (let n = 1; n <= 8; n++) {
-                    well.addState(l, n, 0.0, 0.0); 
+                    well.addState(l, n, 0.0, 0.0);
                 }
             }
 
@@ -76,7 +76,7 @@
             let isTapping = false;
             let tapStartTime = 0;
             let pointerCanvasX = 0; // Coordinates mapped to [0, 200]
-            let pointerCanvasY = 0; 
+            let pointerCanvasY = 0;
             let pointerPhysicalX = 0; // Coordinates mapped to [-1.0, 1.0]
             let pointerPhysicalY = 0;
 
@@ -85,17 +85,17 @@
             const SIGMA_GROWTH_RATE = 0.2; // How fast sigma grows per second
 
             // 1. Pointer Down (Start Charging)
-            canvas.addEventListener('pointerdown', function(event) {
+            canvas.addEventListener('pointerdown', function (event) {
                 // Ignore right-clicks
-                if (event.button !== 0 && event.pointerType === 'mouse') return; 
+                if (event.button !== 0 && event.pointerType === 'mouse') return;
 
                 const rect = canvas.getBoundingClientRect();
                 const cssX = event.clientX - rect.left;
                 const cssY = event.clientY - rect.top;
 
                 // Map CSS [0, 400] to Physical [-1.0, 1.0]
-                pointerPhysicalX = (cssX / 400.0) * 2.0 - 1.0; 
-                pointerPhysicalY = (cssY / 400.0) * 2.0 - 1.0; 
+                pointerPhysicalX = (cssX / 400.0) * 2.0 - 1.0;
+                pointerPhysicalY = (cssY / 400.0) * 2.0 - 1.0;
 
                 // Map CSS [0, 400] to Internal Canvas [0, 200]
                 pointerCanvasX = (cssX / 400.0) * gridSize;
@@ -110,7 +110,7 @@
             });
 
             // 2. Pointer Up (Release & Inject)
-            canvas.addEventListener('pointerup', function(event) {
+            canvas.addEventListener('pointerup', function (event) {
                 if (!isTapping) return;
                 isTapping = false;
 
@@ -124,7 +124,7 @@
             });
 
             // 3. Pointer Cancel (e.g. phone call comes in, or dragging off screen)
-            canvas.addEventListener('pointercancel', function() {
+            canvas.addEventListener('pointercancel', function () {
                 isTapping = false;
             });
 
@@ -161,16 +161,16 @@
 
                     ctx.beginPath();
                     ctx.arc(pointerCanvasX, pointerCanvasY, radiusPx, 0, 2 * Math.PI);
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                    // Line width is 1 internally, which CSS scales up to 2px on screen
-                    ctx.lineWidth = 1; 
-                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(135, 206, 235, 0.95)';
+                    // Draw the filled circle
+                    ctx.fill();
                 }
 
                 // Calculate and update FPS
                 const currentTime = performance.now();
                 frameCount++;
-                
+
                 if (currentTime - lastTime >= 1000) {
                     fpsCounterElement.textContent = `FPS: ${frameCount}`;
                     frameCount = 0;
