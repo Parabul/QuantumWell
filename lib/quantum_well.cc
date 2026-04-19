@@ -114,7 +114,7 @@ void CircularQuantumWell::renderFrame(double dt) {
 
       double dx = x - center;
       double dy = y - center;
-      if (std::sqrt(dx * dx + dy * dy) > center) {
+      if (dx * dx + dy * dy > center * center) {
         frameBuffer[index + 0] = 0;
         frameBuffer[index + 1] = 0;
         frameBuffer[index + 2] = 0;
@@ -135,17 +135,28 @@ void CircularQuantumWell::renderFrame(double dt) {
       // Apply the dynamic scale factor
       double intensity = std::min(mag * brightnessScale, 255.0);
 
-      // Phase-to-Color (120 degree offsets for RGB)
-      uint8_t r =
-          static_cast<uint8_t>(intensity * (0.5 * std::cos(phase) + 0.5));
-      uint8_t g = static_cast<uint8_t>(intensity *
-                                       (0.5 * std::cos(phase - 2.094) + 0.5));
-      uint8_t b = static_cast<uint8_t>(intensity *
-                                       (0.5 * std::cos(phase - 4.188) + 0.5));
+      // 1. Convert phase (-pi to pi) to a Hue degree (0 to 360)
+      double hue = (phase + std::numbers::pi) * (180.0 / std::numbers::pi);
 
-      frameBuffer[index + 0] = r;
-      frameBuffer[index + 1] = g;
-      frameBuffer[index + 2] = b;
+      // 2. Map intensity to a normalized Value (0.0 to 1.0)
+      double v = intensity / 255.0;
+
+      // 3. HSV to RGB Math (Saturation is assumed to be 1.0 for max vibrancy)
+      double c = v; // Chroma
+      double x_val = c * (1.0 - std::abs(std::fmod(hue / 60.0, 2.0) - 1.0));
+
+      double r1 = 0, g1 = 0, b1 = 0;
+
+      if      (hue >= 0   && hue < 60)  { r1 = c; g1 = x_val; b1 = 0; }
+      else if (hue >= 60  && hue < 120) { r1 = x_val; g1 = c; b1 = 0; }
+      else if (hue >= 120 && hue < 180) { r1 = 0; g1 = c; b1 = x_val; }
+      else if (hue >= 180 && hue < 240) { r1 = 0; g1 = x_val; b1 = c; }
+      else if (hue >= 240 && hue < 300) { r1 = x_val; g1 = 0; b1 = c; }
+      else if (hue >= 300 && hue <= 360){ r1 = c; g1 = 0; b1 = x_val; }
+
+      frameBuffer[index + 0] = static_cast<uint8_t>(r1 * 255.0);
+      frameBuffer[index + 1] = static_cast<uint8_t>(g1 * 255.0);
+      frameBuffer[index + 2] = static_cast<uint8_t>(b1 * 255.0);
       frameBuffer[index + 3] = 255;
     }
   }
