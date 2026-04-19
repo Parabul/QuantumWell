@@ -1,0 +1,5 @@
+config_setting(
+    name = "wasm_build",
+    define_values = {"wasm_build": "true"},
+    visibility = ["//visibility:public"],
+)

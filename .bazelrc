@@ -1,0 +1,9 @@
+build --incompatible_enable_cc_toolchain_resolution
+
+build:wasm --define wasm_build=true
+build:wasm --cxxopt="-fexceptions"
+build:wasm --linkopt="--bind"
+build:wasm --linkopt="-O3"
+
+build:wasm --linkopt="-sALLOW_MEMORY_GROWTH=1"
+build:wasm --linkopt="-sINITIAL_MEMORY=134217728"

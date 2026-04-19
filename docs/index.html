@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Quantum Well">
+    <title>Quantum Well</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            /* The simulation runs at 200x200, but we scale it up to 400x400 visually */
+            width: 400px;
+            height: 400px;
+            background-color: #111;
+            border-radius: 50%;
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="quantumCanvas" width="200" height="200"></canvas>
+
+    <script src="main.js"></script>
+
+    <script>
+        Module.onRuntimeInitialized = function () {
+            console.log("WASM Module Loaded.");
+
+            const gridSize = 200;
+            const canvas = document.getElementById('quantumCanvas');
+            const ctx = canvas.getContext('2d');
+
+            
+            const well = new Module.CircularQuantumWell(gridSize, 1.0);
+
+            // Load a large basis set of empty states
+            for (let l = -8; l <= 8; l++) {
+                for (let n = 1; n <= 8; n++) {
+                    well.addState(l, n, 0.0, 0.0); 
+                }
+            }
+
+            canvas.addEventListener('mouseup', function(event) {
+                const rect = canvas.getBoundingClientRect();
+                
+                // Get mouse pixel coordinates relative to the canvas
+                const mouseX = event.clientX - rect.left;
+                const mouseY = event.clientY - rect.top;
+
+                // Convert pixel coordinates [0, 200] to physical coordinates [-1.0, 1.0]
+                // Note: the canvas visually scales to 400x400, but the internal click math maps to your 200x200 gridSize
+                const physicalX = (mouseX / 400.0) * 2.0 - 1.0; 
+                const physicalY = (mouseY / 400.0) * 2.0 - 1.0; 
+
+                // Create a wavepacket at the click location with a width (sigma) of 0.15
+                well.createWavepacket(physicalX, physicalY, 0.15);
+                // Start the loop
+                renderLoop();
+            });
+
+            function renderLoop() {
+                well.renderFrame(0.001); // dt
+
+                const pointer = well.getBufferPointer();
+
+                // Wrap a JS TypedArray view around the Wasm memory
+                const pixelDataView = new Uint8ClampedArray(
+                    HEAPU8.buffer,
+                    pointer,
+                    gridSize * gridSize * 4
+                );
+
+                // Push to the canvas
+                const imageData = new ImageData(pixelDataView, gridSize, gridSize);
+                ctx.putImageData(imageData, 0, 0);
+
+                // Ask the browser for the next frame
+                requestAnimationFrame(renderLoop);
+            }
+        };
+
+    </script>
+</body>
+
+</html>
