@@ -25,12 +25,29 @@
             height: 400px;
             background-color: #111;
             border-radius: 50%;
-            image-rendering: pixelated;
+            /* image-rendering: pixelated; */
+        }
+
+        /* FPS Counter Styling */
+        #fpsCounter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #00ff00; /* Classic terminal green */
+            font-family: monospace;
+            font-size: 16px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+            z-index: 10;
+            pointer-events: none; /* Prevents the counter from blocking mouse clicks */
         }
     </style>
 </head>
 
 <body>
+    
+    <div id="fpsCounter">FPS: 0</div>
 
     <canvas id="quantumCanvas" width="200" height="200"></canvas>
 
@@ -43,7 +60,7 @@
             const gridSize = 200;
             const canvas = document.getElementById('quantumCanvas');
             const ctx = canvas.getContext('2d');
-
+            const fpsCounterElement = document.getElementById('fpsCounter');
             
             const well = new Module.CircularQuantumWell(gridSize, 1.0);
 
@@ -62,15 +79,16 @@
                 const mouseY = event.clientY - rect.top;
 
                 // Convert pixel coordinates [0, 200] to physical coordinates [-1.0, 1.0]
-                // Note: the canvas visually scales to 400x400, but the internal click math maps to your 200x200 gridSize
                 const physicalX = (mouseX / 400.0) * 2.0 - 1.0; 
                 const physicalY = (mouseY / 400.0) * 2.0 - 1.0; 
 
                 // Create a wavepacket at the click location with a width (sigma) of 0.15
                 well.createWavepacket(physicalX, physicalY, 0.15);
-                // Start the loop
-                renderLoop();
             });
+
+            // FPS Tracking variables
+            let lastTime = performance.now();
+            let frameCount = 0;
 
             function renderLoop() {
                 well.renderFrame(0.001); // dt
@@ -88,9 +106,23 @@
                 const imageData = new ImageData(pixelDataView, gridSize, gridSize);
                 ctx.putImageData(imageData, 0, 0);
 
+                // Calculate and update FPS
+                const currentTime = performance.now();
+                frameCount++;
+                
+                // If 1000 milliseconds (1 second) have passed, update the text
+                if (currentTime - lastTime >= 1000) {
+                    fpsCounterElement.textContent = `FPS: ${frameCount}`;
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+
                 // Ask the browser for the next frame
                 requestAnimationFrame(renderLoop);
             }
+
+            // Start the loop immediately upon initialization
+            renderLoop();
         };
 
     </script>

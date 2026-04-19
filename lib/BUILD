@@ -21,6 +21,15 @@ cc_binary(
     ],
 )
 
+cc_test(
+    name = "quantum_well_benchmark",
+    srcs = ["quantum_well_benchmark.cc"],
+    deps = [
+        "@google_benchmark//:benchmark_main",
+        ":quantum_well",
+    ],
+)
+
 wasm_cc_binary(
     name = "main-wasm",
     cc_target = ":main",
