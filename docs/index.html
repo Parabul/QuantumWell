@@ -25,7 +25,8 @@
             height: 400px;
             background-color: #111;
             border-radius: 50%;
-            /* image-rendering: pixelated; */
+            /* touch-action: none prevents the browser from scrolling when dragging on the canvas */
+            touch-action: none; 
         }
 
         /* FPS Counter Styling */
@@ -33,14 +34,14 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            color: #00ff00; /* Classic terminal green */
+            color: #00ff00;
             font-family: monospace;
             font-size: 16px;
             background-color: rgba(0, 0, 0, 0.7);
             padding: 5px 10px;
             border-radius: 4px;
             z-index: 10;
-            pointer-events: none; /* Prevents the counter from blocking mouse clicks */
+            pointer-events: none;
         }
     </style>
 </head>
@@ -71,22 +72,64 @@
                 }
             }
 
-            canvas.addEventListener('mouseup', function(event) {
+            // --- Wavepacket Interaction State ---
+            let isTapping = false;
+            let tapStartTime = 0;
+            let pointerCanvasX = 0; // Coordinates mapped to [0, 200]
+            let pointerCanvasY = 0; 
+            let pointerPhysicalX = 0; // Coordinates mapped to [-1.0, 1.0]
+            let pointerPhysicalY = 0;
+
+            const MIN_SIGMA = 0.05; // Quick tap size
+            const MAX_SIGMA = 0.30; // Max hold size
+            const SIGMA_GROWTH_RATE = 0.2; // How fast sigma grows per second
+
+            // 1. Pointer Down (Start Charging)
+            canvas.addEventListener('pointerdown', function(event) {
+                // Ignore right-clicks
+                if (event.button !== 0 && event.pointerType === 'mouse') return; 
+
                 const rect = canvas.getBoundingClientRect();
-                
-                // Get mouse pixel coordinates relative to the canvas
-                const mouseX = event.clientX - rect.left;
-                const mouseY = event.clientY - rect.top;
+                const cssX = event.clientX - rect.left;
+                const cssY = event.clientY - rect.top;
 
-                // Convert pixel coordinates [0, 200] to physical coordinates [-1.0, 1.0]
-                const physicalX = (mouseX / 400.0) * 2.0 - 1.0; 
-                const physicalY = (mouseY / 400.0) * 2.0 - 1.0; 
+                // Map CSS [0, 400] to Physical [-1.0, 1.0]
+                pointerPhysicalX = (cssX / 400.0) * 2.0 - 1.0; 
+                pointerPhysicalY = (cssY / 400.0) * 2.0 - 1.0; 
 
-                // Create a wavepacket at the click location with a width (sigma) of 0.15
-                well.createWavepacket(physicalX, physicalY, 0.15);
+                // Map CSS [0, 400] to Internal Canvas [0, 200]
+                pointerCanvasX = (cssX / 400.0) * gridSize;
+                pointerCanvasY = (cssY / 400.0) * gridSize;
+
+                // Optional: Ignore clicks outside the circle bounds
+                if (pointerPhysicalX * pointerPhysicalX + pointerPhysicalY * pointerPhysicalY > 1.0) return;
+
+                isTapping = true;
+                tapStartTime = performance.now();
+                canvas.setPointerCapture(event.pointerId); // Keep tracking if pointer leaves bounds slightly
             });
 
-            // FPS Tracking variables
+            // 2. Pointer Up (Release & Inject)
+            canvas.addEventListener('pointerup', function(event) {
+                if (!isTapping) return;
+                isTapping = false;
+
+                const durationSec = (performance.now() - tapStartTime) / 1000.0;
+                let finalSigma = MIN_SIGMA + (durationSec * SIGMA_GROWTH_RATE);
+                finalSigma = Math.min(finalSigma, MAX_SIGMA); // Clamp to max
+
+                // Inject into the WebAssembly engine
+                well.createWavepacket(pointerPhysicalX, pointerPhysicalY, finalSigma);
+                canvas.releasePointerCapture(event.pointerId);
+            });
+
+            // 3. Pointer Cancel (e.g. phone call comes in, or dragging off screen)
+            canvas.addEventListener('pointercancel', function() {
+                isTapping = false;
+            });
+
+
+            // --- Rendering State ---
             let lastTime = performance.now();
             let frameCount = 0;
 
@@ -102,22 +145,38 @@
                     gridSize * gridSize * 4
                 );
 
-                // Push to the canvas
+                // Push Wasm frame to the canvas (This wipes the canvas clean!)
                 const imageData = new ImageData(pixelDataView, gridSize, gridSize);
                 ctx.putImageData(imageData, 0, 0);
+
+                // --- Draw Visual Feedback AFTER putImageData ---
+                if (isTapping) {
+                    const durationSec = (performance.now() - tapStartTime) / 1000.0;
+                    let currentSigma = MIN_SIGMA + (durationSec * SIGMA_GROWTH_RATE);
+                    currentSigma = Math.min(currentSigma, MAX_SIGMA);
+
+                    // Convert physical sigma [-1 to 1] to a canvas pixel radius
+                    // Since physical radius 1.0 = 100 canvas pixels (half of gridSize)
+                    const radiusPx = currentSigma * (gridSize / 2);
+
+                    ctx.beginPath();
+                    ctx.arc(pointerCanvasX, pointerCanvasY, radiusPx, 0, 2 * Math.PI);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    // Line width is 1 internally, which CSS scales up to 2px on screen
+                    ctx.lineWidth = 1; 
+                    ctx.stroke();
+                }
 
                 // Calculate and update FPS
                 const currentTime = performance.now();
                 frameCount++;
                 
-                // If 1000 milliseconds (1 second) have passed, update the text
                 if (currentTime - lastTime >= 1000) {
                     fpsCounterElement.textContent = `FPS: ${frameCount}`;
                     frameCount = 0;
                     lastTime = currentTime;
                 }
 
-                // Ask the browser for the next frame
                 requestAnimationFrame(renderLoop);
             }
 
