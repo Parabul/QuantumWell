@@ -92,9 +92,9 @@
             let pointerPhysicalX = 0; // Coordinates mapped to [-1.0, 1.0]
             let pointerPhysicalY = 0;
 
-            const MIN_SIGMA = 0.05; // Quick tap size
-            const MAX_SIGMA = 0.30; // Max hold size
-            const SIGMA_GROWTH_RATE = 0.3; // How fast sigma grows per second
+            const MIN_SIGMA = 0.10; // Quick tap size
+            const MAX_SIGMA = 0.20; // Max hold size
+            const SIGMA_GROWTH_RATE = 0.05; // How fast sigma grows per second
 
             // 1. Pointer Down (Start Charging)
             canvas.addEventListener('pointerdown', function (event) {
