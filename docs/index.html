@@ -40,6 +40,20 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Instruction Text Styling */
+        #instruction {
+            position: absolute;
+            top: 15%;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+            pointer-events: none; /* Prevents text from blocking clicks */
+            transition: opacity 0.5s ease; /* Smooth fade out */
+        }
+
         /* FPS Counter Styling */
         #fpsCounter {
             display: none;
@@ -60,6 +74,7 @@
 
 <body>
 
+    <div id="instruction">Tap somewhere in the middle =)</div>
     <div id="fpsCounter">FPS: 0</div>
 
     <canvas id="quantumCanvas" width="200" height="200"></canvas>
@@ -74,6 +89,7 @@
             const canvas = document.getElementById('quantumCanvas');
             const ctx = canvas.getContext('2d');
             const fpsCounterElement = document.getElementById('fpsCounter');
+            const instructionElement = document.getElementById('instruction');
 
             const well = new Module.CircularQuantumWell(gridSize, 1.0);
 
@@ -100,6 +116,11 @@
             canvas.addEventListener('pointerdown', function (event) {
                 // Ignore right-clicks
                 if (event.button !== 0 && event.pointerType === 'mouse') return;
+
+                // Fade out instruction text on first tap
+                if (instructionElement.style.opacity !== '0') {
+                    instructionElement.style.opacity = '0';
+                }
 
                 const rect = canvas.getBoundingClientRect();
                 const cssX = event.clientX - rect.left;
